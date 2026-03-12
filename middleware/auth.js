@@ -13,19 +13,16 @@ const auth = (req, res, next) => {
   }
 };
 
-// Admin only
 const adminOnly = (req, res, next) => {
   if (req.user.role !== 'admin')
     return res.status(403).json({ message: 'Admin access only' });
   next();
 };
 
-// Staff or Admin
 const staffOrAdmin = (req, res, next) => {
   if (!['admin', 'staff'].includes(req.user.role))
     return res.status(403).json({ message: 'Staff or Admin access only' });
   next();
 };
 
-// ✅ staffOrAdmin is now exported
 module.exports = { auth, adminOnly, staffOrAdmin };

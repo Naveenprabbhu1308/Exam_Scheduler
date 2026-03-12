@@ -7,16 +7,12 @@ const studentSchema = new mongoose.Schema({
   score:         { type: Number, default: 0 },
   totalMarks:    { type: Number, default: 0 },
   maxMarks:      { type: Number, default: 0 },
-
-  // ✅ All 7 departments added
   department: {
     type: String,
     enum: ['CSE', 'IT', 'ECE', 'MECH', 'BIOTECH', 'MECHATRONICS', 'MECHANICAL'],
     default: null
   },
-
   assignedStaff: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-
 }, { timestamps: true });
 
 module.exports = mongoose.model('Student', studentSchema);

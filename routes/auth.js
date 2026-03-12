@@ -1,35 +1,25 @@
 const router = require('express').Router();
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt    = require('jsonwebtoken');
+const User   = require('../models/User');
 const { auth, adminOnly } = require('../middleware/auth');
 
 // Register
 router.post('/register', async (req, res) => {
   try {
     const { name, email, username, password, role, department, rollNo } = req.body;
-
     const exists = await User.findOne({ username });
-    if (exists) {
-      return res.status(400).json({ message: 'Username already exists' });
-    }
+    if (exists) return res.status(400).json({ message: 'Username already exists' });
 
-    const user = await User.create({
-      name,
-      email,
-      username,
-      password,
-      role: role || 'student',
+    await User.create({
+      name, email, username, password,
+      role:       role       || 'student',
       department: department || null,
-      rollNo: rollNo || null,
-      approved: false
+      rollNo:     rollNo     || null,
+      approved:   false
     });
 
-    res.status(201).json({
-      message: 'Registration submitted! Wait for admin approval.'
-    });
-
+    res.status(201).json({ message: 'Registration submitted! Wait for admin approval.' });
   } catch (err) {
-    console.error(err);
     res.status(400).json({ message: err.message });
   }
 });
@@ -38,31 +28,16 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-
     const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid username or password' });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid username or password' });
 
     const match = await user.comparePassword(password);
-    if (!match) {
-      return res.status(400).json({ message: 'Invalid username or password' });
-    }
+    if (!match) return res.status(400).json({ message: 'Invalid username or password' });
 
-    if (!user.approved) {
-      return res.status(403).json({
-        message: 'Your account is pending admin approval.'
-      });
-    }
+    if (!user.approved) return res.status(403).json({ message: 'Your account is pending admin approval.' });
 
     const token = jwt.sign(
-      {
-        id:         user._id,
-        role:       user.role,
-        department: user.department,
-        username:   user.username,
-        rollNo:     user.rollNo,      // ✅ added
-      },
+      { id: user._id, role: user.role, department: user.department, username: user.username, rollNo: user.rollNo },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -75,16 +50,15 @@ router.post('/login', async (req, res) => {
         username:   user.username,
         role:       user.role,
         department: user.department,
-        rollNo:     user.rollNo,      // ✅ added
+        rollNo:     user.rollNo,
       }
     });
-
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Get pending users (admin only)
+// Pending approvals (admin)
 router.get('/pending', auth, adminOnly, async (req, res) => {
   try {
     const pending = await User.find({ approved: false }).select('-password');
@@ -94,7 +68,7 @@ router.get('/pending', auth, adminOnly, async (req, res) => {
   }
 });
 
-// Approve user (admin only)
+// Approve user (admin)
 router.put('/approve/:id', auth, adminOnly, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.params.id, { approved: true });
@@ -104,7 +78,7 @@ router.put('/approve/:id', auth, adminOnly, async (req, res) => {
   }
 });
 
-// Reject user (admin only)
+// Reject user (admin)
 router.delete('/reject/:id', auth, adminOnly, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);

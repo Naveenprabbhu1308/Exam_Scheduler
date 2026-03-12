@@ -1,8 +1,8 @@
 const router = require('express').Router();
 const Hall   = require('../models/Hall');
-const { auth, adminOnly, staffOrAdmin } = require('../middleware/auth');
+const { auth, adminOnly } = require('../middleware/auth');
 
-// GET all halls — everyone can view (needed for scheduling form)
+// GET all halls — any authenticated user (staff needs this for scheduling)
 router.get('/', auth, async (req, res) => {
   try {
     const halls = await Hall.find().sort({ name: 1 });
@@ -12,7 +12,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// ADD hall — admin only
+// POST create hall — admin only
 router.post('/', auth, adminOnly, async (req, res) => {
   try {
     const hall = await Hall.create(req.body);
@@ -22,7 +22,7 @@ router.post('/', auth, adminOnly, async (req, res) => {
   }
 });
 
-// UPDATE hall — admin only
+// PUT update hall — admin only
 router.put('/:id', auth, adminOnly, async (req, res) => {
   try {
     const hall = await Hall.findByIdAndUpdate(req.params.id, req.body, { new: true });
