@@ -12,10 +12,10 @@ router.post('/register', async (req, res) => {
 
     await User.create({
       name, email, username, password,
-      role:       role       || 'student',
+      role: role || 'student',
       department: department || null,
-      rollNo:     rollNo     || null,
-      approved:   false
+      rollNo: rollNo || null,
+      approved: false
     });
 
     res.status(201).json({ message: 'Registration submitted! Wait for admin approval.' });
@@ -44,21 +44,13 @@ router.post('/login', async (req, res) => {
 
     res.json({
       token,
-      user: {
-        id:         user._id,
-        name:       user.name,
-        username:   user.username,
-        role:       user.role,
-        department: user.department,
-        rollNo:     user.rollNo,
-      }
+      user: { id: user._id, name: user.name, username: user.username, role: user.role, department: user.department, rollNo: user.rollNo }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Pending approvals (admin)
 router.get('/pending', auth, adminOnly, async (req, res) => {
   try {
     const pending = await User.find({ approved: false }).select('-password');
@@ -68,7 +60,6 @@ router.get('/pending', auth, adminOnly, async (req, res) => {
   }
 });
 
-// Approve user (admin)
 router.put('/approve/:id', auth, adminOnly, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.params.id, { approved: true });
@@ -78,7 +69,6 @@ router.put('/approve/:id', auth, adminOnly, async (req, res) => {
   }
 });
 
-// Reject user (admin)
 router.delete('/reject/:id', auth, adminOnly, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);

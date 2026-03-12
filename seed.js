@@ -1,13 +1,11 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const bcrypt   = require('bcryptjs');
 const User     = require('./models/User');
 const Student  = require('./models/Student');
 const Hall     = require('./models/Hall');
 
 const MONGO_URI = process.env.MONGO_URI;
 
-// Tamil name pool
 const firstNames = [
   'Arun','Bala','Dinesh','Ganesh','Hari','Karthik','Lokesh','Muthu','Naveen','Prabhu',
   'Rajesh','Suresh','Vimal','Anand','Bharath','Chandru','Deepak','Elan','Firoz','Gopal',
@@ -22,13 +20,9 @@ const firstNames = [
   'Vasantha','Vidhya','Pooja','Keerthana','Divya','Sowmya','Nithya','Vinitha','Sangeetha','Priyadharshini',
   'Abishek','Akash','Aravind','Ashwin','Balaji','Dhanush','Gokul','Hariharan','Jeevan','Kalidasan',
   'Madhan','Nirmal','Pavendhan','Ranjith','Saravanan','Tamilselvan','Vignesh','Yazhini','Arjun','Boopathi',
-  'Dhanraj','Elangeswaran','Guhan','Iyappan','Jeganath','Kannan','Manimaran','Niranjan','Parthasarathy','Ragavan',
-  'Sabari','Tamizhan','Venkat','Yuvraj','Adhithya','Bhuvanesh','Dhamodharan','Elango','Giridhar','Harihara',
-  'Isai','Jothi','Kalaiselvan','Manikandan','Nandakumar','Palani','Ramprasad','Selvam','Thangaraj','Vetri',
 ];
 
 const surnames = ['A','B','C','D','E','G','J','K','M','N','P','R','S','T','V'];
-
 const usedNames = new Set();
 const getName = () => {
   let name, tries = 0;
@@ -43,100 +37,65 @@ const getName = () => {
 };
 
 const DEPTS = [
-  { name: 'CSE',         code: 'CS', prefix: 'cs',       staffUser: 'staff.cse',    staffPass: 'cse.staff',    staffName: 'Staff CSE'     },
-  { name: 'IT',          code: 'IT', prefix: 'it',       staffUser: 'staff.it',     staffPass: 'it.staff',     staffName: 'Staff IT'      },
-  { name: 'MECHATRONICS',code: 'MZ', prefix: 'mz',       staffUser: 'staff.mz',     staffPass: 'mz.staff',     staffName: 'Staff MZ'      },
-  { name: 'BIOTECH',     code: 'BT', prefix: 'bt',       staffUser: 'staff.biotech',staffPass: 'biotech.staff',staffName: 'Staff Biotech' },
-  { name: 'MECHANICAL',  code: 'ME', prefix: 'me',       staffUser: 'staff.mech',   staffPass: 'mech.staff',   staffName: 'Staff Mech'    },
+  { name:'CSE',         code:'CS', prefix:'cs', staffUser:'staff.cse',    staffPass:'cse.staff',    staffName:'Staff CSE'     },
+  { name:'IT',          code:'IT', prefix:'it', staffUser:'staff.it',     staffPass:'it.staff',     staffName:'Staff IT'      },
+  { name:'MECHATRONICS',code:'MZ', prefix:'mz', staffUser:'staff.mz',     staffPass:'mz.staff',     staffName:'Staff MZ'      },
+  { name:'BIOTECH',     code:'BT', prefix:'bt', staffUser:'staff.biotech',staffPass:'biotech.staff',staffName:'Staff Biotech' },
+  { name:'MECHANICAL',  code:'ME', prefix:'me', staffUser:'staff.mech',   staffPass:'mech.staff',   staffName:'Staff Mech'    },
 ];
 
-const HALLS = ['A','B','C','D','E','F','G','H','I','J'].map((l) => ({
-  name:     `Hall ${l}`,
-  capacity: 30,
-}));
+const HALLS = ['A','B','C','D','E','F','G','H','I','J'].map((l) => ({ name:`Hall ${l}`, capacity:30 }));
 
 async function seed() {
   await mongoose.connect(MONGO_URI);
   console.log('Connected to MongoDB');
 
-  // Wipe existing data
-  await Promise.all([
-    User.deleteMany({}),
-    Student.deleteMany({}),
-    Hall.deleteMany({}),
-  ]);
+  await Promise.all([User.deleteMany({}), Student.deleteMany({}), Hall.deleteMany({})]);
   console.log('Cleared existing data');
 
-  // Create halls
   await Hall.insertMany(HALLS);
   console.log('10 halls created');
 
-  // Create admin
-  const adminHash = await bcrypt.hash('admin@bitsathy', 10);
-  await User.create({
-    name: 'Admin', username: 'admin', password: adminHash,
-    role: 'admin', approved: true, department: null,
-  });
+  await User.create({ name:'Admin', username:'admin', password:'admin@bitsathy', role:'admin', approved:true, department:null });
   console.log('Admin created → admin / admin@bitsathy');
 
-  // Create staff + students per dept
   const studentDocs = [];
 
   for (const dept of DEPTS) {
-    // Staff user
-    const staffHash = await bcrypt.hash(dept.staffPass, 10);
-    await User.create({
-      name:       dept.staffName,
-      username:   dept.staffUser,
-      password:   staffHash,
-      role:       'staff',
-      department: dept.name,
-      approved:   true,
-    });
-    console.log(`Staff created → ${dept.staffUser} / ${dept.staffPass}`);
+    await User.create({ name:dept.staffName, username:dept.staffUser, password:dept.staffPass, role:'staff', department:dept.name, approved:true });
+    console.log(`Staff → ${dept.staffUser} / ${dept.staffPass}`);
 
-    // 300 students per dept
+    const userDocs = [];
     for (let seq = 101; seq <= 400; seq++) {
       const rollNo   = `7376231${dept.code}${seq}`;
       const username = `${dept.prefix}${seq}`;
-      const password = `${seq}@bit`;
-      const hash     = await bcrypt.hash(password, 10);
       const name     = getName();
-
-      // Student in User collection (for login)
-      await User.create({
-        name, username, password: hash,
-        role: 'student', department: dept.name,
-        rollNo, approved: true,
-      });
-
-      // Student in Student collection (for dashboard/scores)
+      userDocs.push({ name, username, password:`${seq}@bit`, role:'student', department:dept.name, rollNo, approved:true });
       studentDocs.push({
-        name,
-        rollNo,
+        name, rollNo,
         email:      `${username}@bitsathy.ac.in`,
-        score:      Math.floor(Math.random() * 41) + 60, // 60–100
+        score:      Math.floor(Math.random() * 41) + 60,
         totalMarks: Math.floor(Math.random() * 201) + 700,
         maxMarks:   1000,
         department: dept.name,
       });
     }
-    console.log(`300 students queued for ${dept.name}`);
+
+    let count = 0;
+    for (const u of userDocs) {
+      try { await User.create(u); count++; }
+      catch (err) { console.error(`  ❌ ${u.username}: ${err.message}`); }
+    }
+    console.log(`  ✅ ${count}/300 users created for ${dept.name}`);
   }
 
   await Student.insertMany(studentDocs);
-  console.log(`${studentDocs.length} students inserted into Student collection`);
-
-  console.log('\n✅ Seed complete!');
-  console.log('─────────────────────────────────────');
+  console.log(`\n✅ ${studentDocs.length} students inserted`);
   console.log('Admin  → admin / admin@bitsathy');
-  DEPTS.forEach((d) => {
-    console.log(`Staff  → ${d.staffUser} / ${d.staffPass}`);
-    console.log(`Students → ${d.prefix}101–${d.prefix}400 / 101@bit–400@bit  (dept: ${d.name})`);
-  });
-  console.log('─────────────────────────────────────');
+  DEPTS.forEach((d) => console.log(`Staff  → ${d.staffUser} / ${d.staffPass} | Students → ${d.prefix}101-400 / 101@bit-400@bit`));
 
   await mongoose.disconnect();
+  console.log('Done!');
 }
 
-seed().catch((err) => { console.error(err); process.exit(1); });
+seed().catch((err) => { console.error('Seed failed:', err); process.exit(1); });
